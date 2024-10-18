@@ -24,7 +24,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           push: true
-          tags:
-            - ghcr.io/calendar-team/sqlite-to-r2:${{ github.sha }}
-            - ghcr.io/calendar-team/sqlite-to-r2:latest
+          tags: |
+            ${{ secrets.CONTAINER_REGISTRY_URL }}/calendar-team/sqlite-to-r2:${{ github.sha }}
+            ${{ secrets.CONTAINER_REGISTRY_URL }}/calendar-team/sqlite-to-r2:latest
 
