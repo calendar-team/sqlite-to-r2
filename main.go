@@ -89,7 +89,8 @@ func main() {
 				err = backup(dbFilePath)
 				if err != nil {
 					failedCounter.Inc()
-					log.Print("Failed to create the backup, retrying immedeately. The error was: ", err)
+					log.Print("Failed to create the backup, retrying in 2 seconds. The error was: ", err)
+					time.Sleep(2 * time.Second)
 					return
 				}
 				log.Print("Finished local sql db backup successfully")
@@ -97,7 +98,8 @@ func main() {
 				err = upload(ctx, s3Client, bucketName)
 				if err != nil {
 					failedCounter.Inc()
-					log.Print("Failed to upload file to R2, retrying immedeately. The error was: ", err)
+					log.Print("Failed to upload file to R2, retrying 2 seconds. The error was: ", err)
+					time.Sleep(2 * time.Second)
 					return
 				}
 				log.Print("Finished uploading to R2 successfully")
