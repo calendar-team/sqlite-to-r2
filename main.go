@@ -120,7 +120,7 @@ func main() {
 }
 
 func backup(sourceDbFile string) (err error) {
-	srcDb, err := sql.Open("sqlite3", sourceDbFile)
+	srcDb, err := sql.Open("sqlite3", sourceDbFile+"?mode=ro")
 	if err != nil {
 		return fmt.Errorf("openning source database: %w", err)
 	}
