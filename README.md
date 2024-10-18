@@ -1,12 +1,12 @@
 # sqlite-to-r2
 
-This tool can be used to backup a sqlite db file to R2.
+This tool can be used to backup an sqlite db file to [R2](https://www.cloudflare.com/developer-platform/r2/).
 
 ## K8S
 
-To use this tool in K8S, add a side container with this tool.
+To use this tool in K8S, add a new container with this tool alongside the main container that writes to the db file.
 
-It expects a few env variabled to be set in order to run:
+It expects a few env variables to be set in order to run:
 
 1. `BUCKET_NAME` - the name of the bucket where the db will be uploaded
 2. `ACCOUNT_ID` - CF account id. Check the instruction on how to find it [here](https://developers.cloudflare.com/fundamentals/setup/find-account-and-zone-ids/)
