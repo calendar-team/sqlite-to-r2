@@ -9,7 +9,7 @@ RUN go test -v
 
 RUN go build -o /go/bin/sqlite-to-r2
 
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/base-debian12
 
 COPY --from=build /go/bin/sqlite-to-r2 /
 CMD ["/sqlite-to-r2"]
