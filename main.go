@@ -31,10 +31,9 @@ var (
 		Name: "sqlite_to_r2_failed_backups_total",
 		Help: "The total number of failed db backups",
 	})
-	duration = promauto.NewHistogram(prometheus.HistogramOpts{
-		Name:    "sqlite_to_r2_backups_duration_ms",
-		Help:    "The duration of db backup execution in ms",
-		Buckets: prometheus.ExponentialBucketsRange(500, 60000, 15),
+	duration = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sqlite_to_r2_backups_duration_ms",
+		Help: "The duration of db backup execution in ms",
 	})
 )
 
@@ -105,7 +104,7 @@ func main() {
 				log.Print("Finished uploading to R2 successfully")
 				endTime := time.Now()
 				execDuration := endTime.Sub(initialTime)
-				duration.Observe(float64(execDuration.Milliseconds()))
+				duration.Set(float64(execDuration.Milliseconds()))
 				successCounter.Inc()
 				log.Print("Finished backup successfully in ", execDuration)
 				_ = <-ticker.C
