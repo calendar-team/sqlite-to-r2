@@ -106,7 +106,7 @@ func main() {
 				execDuration := endTime.Sub(initialTime)
 				duration.Set(float64(execDuration.Milliseconds()))
 				state.Set(1)
-				last_successful.Set(float64(time.Now().Unix()))
+				last_successful.Set(float64(time.Now().UnixMilli()))
 				log.Print("Finished backup successfully in ", execDuration)
 				_ = <-ticker.C
 			}()
