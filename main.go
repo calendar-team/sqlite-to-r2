@@ -23,13 +23,13 @@ import (
 const BACKUP_FILE = "/tmp/backup.db3"
 
 var (
-	successCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "sqlite_to_r2_success_backups_total",
-		Help: "The total number of successful db backups",
+	state = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sqlite_to_r2_backup_state",
+		Help: "The state of the db backup. (1 - successful, 0 - failed)",
 	})
-	failedCounter = promauto.NewCounter(prometheus.CounterOpts{
-		Name: "sqlite_to_r2_failed_backups_total",
-		Help: "The total number of failed db backups",
+	last_successful = promauto.NewGauge(prometheus.GaugeOpts{
+		Name: "sqlite_to_r2_backup_last_successful",
+		Help: "The last successful backup timestamp",
 	})
 	duration = promauto.NewGauge(prometheus.GaugeOpts{
 		Name: "sqlite_to_r2_backups_duration_ms",
@@ -87,7 +87,7 @@ func main() {
 				log.Print("Creating local sql db backup")
 				err = backup(dbFilePath)
 				if err != nil {
-					failedCounter.Inc()
+					state.Set(0)
 					log.Print("Failed to create the backup, retrying in 2 seconds. The error was: ", err)
 					time.Sleep(2 * time.Second)
 					return
@@ -96,7 +96,7 @@ func main() {
 				log.Print("Uploading backup to R2")
 				err = upload(ctx, s3Client, bucketName)
 				if err != nil {
-					failedCounter.Inc()
+					state.Set(0)
 					log.Print("Failed to upload file to R2, retrying 2 seconds. The error was: ", err)
 					time.Sleep(2 * time.Second)
 					return
@@ -105,7 +105,8 @@ func main() {
 				endTime := time.Now()
 				execDuration := endTime.Sub(initialTime)
 				duration.Set(float64(execDuration.Milliseconds()))
-				successCounter.Inc()
+				state.Set(1)
+				last_successful.Set(float64(time.Now().Unix()))
 				log.Print("Finished backup successfully in ", execDuration)
 				_ = <-ticker.C
 			}()
