@@ -97,17 +97,6 @@ func main() {
 					return
 				}
 				log.Print("Finished local sql db backup successfully")
-
-				fileInfo, err := os.Stat(BACKUP_FILE)
-				if err != nil {
-					state.Set(0)
-					log.Print(fmt.Sprintf("couldn't get the size of the backed up file %v, retrying in 5 seconds. The error was: ", BACKUP_FILE), err)
-					time.Sleep(5 * time.Second)
-					return
-				}
-
-				size.Set(float64(fileInfo.Size()))
-
 				log.Print("Uploading backup to R2")
 				err = upload(ctx, s3Client, bucketName)
 				if err != nil {
@@ -122,6 +111,16 @@ func main() {
 				duration.Set(float64(execDuration.Milliseconds()))
 				state.Set(1)
 				last_successful.Set(float64(time.Now().UnixMilli()))
+
+				fileInfo, err := os.Stat(BACKUP_FILE)
+				if err != nil {
+					state.Set(0)
+					log.Print(fmt.Sprintf("couldn't get the size of the backed up file %v, retrying in 5 seconds. The error was: ", BACKUP_FILE), err)
+					time.Sleep(5 * time.Second)
+					return
+				}
+
+				size.Set(float64(fileInfo.Size()))
 
 				log.Print("Finished backup successfully in ", execDuration)
 				_ = <-ticker.C
