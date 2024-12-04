@@ -13,7 +13,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/mattn/go-sqlite3"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
@@ -198,23 +200,40 @@ func conn(db *sql.DB) (c *sqlite3.SQLiteConn, err error) {
 	return
 }
 
-func upload(ctx context.Context, s3Client *s3.Client, bucketName string) (err error) {
+func upload(ctx context.Context, s3Client *s3.Client, bucketName string) error {
 	file, err := os.Open(BACKUP_FILE)
 	if err != nil {
 		return errors.New(fmt.Sprintf("couldn't open file %v to upload. Here's why: %v\n", BACKUP_FILE, err))
 	}
 	defer file.Close()
 
+	uploader := manager.NewUploader(s3Client, func(u *manager.Uploader) {
+		u.PartSize = 10 * 1024 * 1024
+	})
+
 	objectKey := "backup.db3"
-	_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+	_, err = uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(objectKey),
 		Body:   file,
 	})
 
 	if err != nil {
-		return errors.New(fmt.Sprintf("couldn't upload file %v to %v:%v. Here's why: %v\n", BACKUP_FILE, bucketName, objectKey, err))
+		var apiErr smithy.APIError
+		if errors.As(err, &apiErr) && apiErr.ErrorCode() == "EntityTooLarge" {
+			log.Printf("Error while uploading object to %s. The object is too large.\n"+
+				"The maximum size for a multipart upload is 5TB.", bucketName)
+		} else {
+			log.Printf("Couldn't upload large object to %v:%v. Here's why: %v\n",
+				bucketName, objectKey, err)
+		}
+	} else {
+		err = s3.NewObjectExistsWaiter(s3Client).Wait(
+			ctx, &s3.HeadObjectInput{Bucket: aws.String(bucketName), Key: aws.String(objectKey)}, time.Minute)
+		if err != nil {
+			log.Printf("Failed attempt to wait for object %s to exist.\n", objectKey)
+		}
 	}
 
-	return nil
+	return err
 }
